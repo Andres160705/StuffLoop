@@ -5,7 +5,7 @@ import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
 export async function signInWithGoogle(): Promise<boolean> {
-  const redirectTo = Linking.createURL("/home");
+  const redirectTo = Linking.createURL("auth");
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

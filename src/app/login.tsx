@@ -1,3 +1,4 @@
+import React from "react";
 import AuthField from "@/components/AuthField";
 import GoogleButton from "@/components/GoogleButton";
 import { Colors } from "@/constants/colors";
@@ -42,7 +43,7 @@ export default function Login() {
 
     if (error) return Alert.alert("No se pudo iniciar sesión", error.message);
 
-    router.replace("/home");
+    router.replace("/catalogo");
   };
 
   return (

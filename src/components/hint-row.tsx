@@ -1,12 +1,9 @@
-import type { ReactNode } from "react";
+import React, { type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
 
-import { Spacing } from "@/constants/colors";
-
-type HintRowProps = {
+export type HintRowProps = {
   title?: string;
   hint?: ReactNode;
 };
@@ -18,8 +15,8 @@ export function HintRow({
   return (
     <View style={styles.stepRow}>
       <ThemedText type="small">{title}</ThemedText>
-      <ThemedView type="backgroundSelected" style={styles.codeSnippet}>
-        <ThemedText themeColor="textSecondary">{hint}</ThemedText>
+      <ThemedView style={styles.codeSnippet}>
+        <ThemedText type="small">{hint}</ThemedText>
       </ThemedView>
     </View>
   );
@@ -29,10 +26,11 @@ const styles = StyleSheet.create({
   stepRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
   },
   codeSnippet: {
-    borderRadius: Spacing.two,
-    paddingVertical: Spacing.half,
-    paddingHorizontal: Spacing.two,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
 });
