@@ -39,31 +39,42 @@ export interface FotoParaSubir {
   mimeType?: string | null;
   fileName?: string | null;
   // Base64 del archivo (expo-image-picker con `base64: true`). En Android es
-  // la vía preferida: viaja como URI data: directo al streaming nativo.
+  // la vía de subida: se decodifica a bytes y se sube directo.
   base64?: string | null;
 }
 
 /**
- * Descriptor de archivo para la subida nativa en React Native.
- *
- * ¡TIENE que ser una clase y NO un objeto plano! storage-js hace
- * JSON.stringify de cualquier body que sea un objeto plano (detector p() de
- * su bundle): con `{uri, name, type}` plano sube el TEXTO de ese JSON al
- * bucket en vez de la foto (bug real: archivos de 236 bytes con puro JSON).
- * Una instancia de clase no es "objeto plano" para ese detector y pasa
- * intacta hasta el networking nativo de RN, que transmite el archivo por
- * streaming sin leerlo en JS.
+ * Decodifica base64 → bytes en JS puro. React Native no garantiza `atob`
+ * global, y el fetch de Expo ("winter") solo acepta bodies estándar
+ * (string | ArrayBuffer | TypedArray | Blob | FormData) — por eso subimos
+ * la foto Android como Uint8Array, que storage-js también pasa intacto
+ * (no es "objeto plano": no lo convierte a JSON).
  */
-class ArchivoNativo {
-  uri: string;
-  name: string;
-  type: string;
-
-  constructor(uri: string, name: string, type: string) {
-    this.uri = uri;
-    this.name = name;
-    this.type = type;
+function decodificarBase64(base64: string): Uint8Array {
+  const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const tabla: Record<string, number> = {};
+  for (let i = 0; i < alfabeto.length; i++) {
+    tabla[alfabeto[i]] = i;
   }
+
+  const limpia = base64.replace(/[\r\n\s=]/g, '');
+  const bytes = new Uint8Array(Math.floor((limpia.length * 3) / 4));
+  let acumulado = 0;
+  let bits = 0;
+  let indice = 0;
+  for (let i = 0; i < limpia.length; i++) {
+    const valor = tabla[limpia[i]];
+    if (valor === undefined) {
+      throw new Error('El base64 de la foto contiene caracteres inválidos.');
+    }
+    acumulado = (acumulado << 6) | valor;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes[indice++] = (acumulado >> bits) & 0xff;
+    }
+  }
+  return indice === bytes.length ? bytes : bytes.subarray(0, indice);
 }
 
 export const objetosService = {
@@ -80,17 +91,20 @@ export const objetosService = {
     const ruta = `${user?.id || 'sin-sesion'}/${nombreArchivo}`;
 
     // Cuerpo que se le pasa a storage.upload(). En Android NO se puede leer
-    // la foto con fetch(file://...): está roto desde RN 0.82 (issue #54626) y
-    // devuelve basura ("File not found") o falla — y esa basura se subía al
-    // bucket como si fuera la foto. En Android usamos el descriptor nativo
-    // ArchivoNativo (ver comentario de la clase) con una URI data: cuando el
-    // picker nos dio el base64 — el networking nativo de RN la decodifica
-    // directo sin depender de paths file:// raros de Expo Go. En iOS/web el
-    // fetch → Blob sí funciona (verificado con iPhone real).
+    // la foto con fetch(file://...): el fetch de Expo responde basura
+    // ("File not found") en vez de fallar, y esa basura se subía al bucket
+    // como si fuera la foto. Tampoco sirven los bodies personalizados: el
+    // fetch de Expo solo acepta tipos estándar ("Unsupported BodyInit
+    // type") y storage-js convierte a JSON cualquier objeto plano. La vía
+    // que cruza todos los filtros: bytes directos (Uint8Array) del base64
+    // que nos da el picker. En iOS/web el fetch → Blob sí funciona
+    // (verificado con iPhone real).
     let cuerpo: any;
     if (Platform.OS === 'android') {
-      const uri = foto.base64 ? `data:${mime};base64,${foto.base64}` : foto.uri;
-      cuerpo = new ArchivoNativo(uri, nombreArchivo, mime);
+      if (!foto.base64) {
+        throw new Error('La foto no incluye base64 (el picker debe pedirla con base64: true).');
+      }
+      cuerpo = decodificarBase64(foto.base64);
     } else {
       const respuesta = await fetch(foto.uri);
       // Blindaje: si el fetch falla, que reviente aquí y NO suba basura

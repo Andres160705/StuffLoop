@@ -42,8 +42,8 @@ export default function PublicarObjeto() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
-      // El base64 alimenta la subida nativa en Android (URI data:) — ver
-      // objetosService.subirFoto
+      // El base64 es la vía de subida en Android: se decodifica a bytes
+      // (Uint8Array) y se sube directo — ver objetosService.subirFoto
       base64: true,
     });
     if (!resultado.canceled) {
@@ -62,8 +62,8 @@ export default function PublicarObjeto() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
-      // El base64 alimenta la subida nativa en Android (URI data:) — ver
-      // objetosService.subirFoto
+      // El base64 es la vía de subida en Android: se decodifica a bytes
+      // (Uint8Array) y se sube directo — ver objetosService.subirFoto
       base64: true,
     });
     if (!resultado.canceled) {
