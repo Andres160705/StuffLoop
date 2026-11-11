@@ -34,9 +34,9 @@ export default function GoogleButton() {
       // URL (localhost), que el teléfono no puede alcanzar. Mostramos la
       // URL exacta que falta por agregar.
       Alert.alert(
-        'Safari no volvió a la app',
+        'El navegador no volvió a la app',
         'Si tú cerraste la ventana, simplemente vuelve a intentar.\n\n' +
-          'Si Safari quedó en un error de conexión ("no se pudo conectar al servidor"), falta agregar la URL de retorno en Supabase → Authentication → URL Configuration → Redirect URLs:\n\n' +
+          'Si el navegador quedó en un error de conexión ("no se pudo conectar al servidor"), falta agregar la URL de retorno en Supabase → Authentication → URL Configuration → Redirect URLs:\n\n' +
           resultado.redirectUri +
           '\n\nAgrégalas, guarda y vuelve a intentar el login.',
       );

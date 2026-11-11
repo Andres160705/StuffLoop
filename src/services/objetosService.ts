@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { supabase } from '../supabase';
 import { Objeto, TipoPublicacion } from '../types/objeto';
 import { CATEGORIA_APP_A_DB, CATEGORIA_DB_A_APP } from '../constants/categorias';
@@ -47,17 +48,38 @@ export const objetosService = {
   async subirFoto(foto: FotoParaSubir): Promise<string> {
     const { data: { user } } = await supabase.auth.getUser();
 
-    // fetch(file://...) → Blob funciona en RN y en web
-    const respuesta = await fetch(foto.uri);
-    const blob = await respuesta.blob();
-
     const mime = foto.mimeType || 'image/jpeg';
     const extension = mime.split('/')[1] || 'jpg';
-    const ruta = `${user?.id || 'sin-sesion'}/${Date.now()}.${extension}`;
+    const nombreArchivo = `${Date.now()}.${extension}`;
+    const ruta = `${user?.id || 'sin-sesion'}/${nombreArchivo}`;
+
+    // Cuerpo que se le pasa a storage.upload(). En Android NO se puede leer
+    // la foto con fetch(file://...): está roto desde RN 0.82 (issue #54626) y
+    // devuelve basura ("File not found") o falla — y esa basura se subía al
+    // bucket como si fuera la foto. En Android usamos el descriptor nativo
+    // {uri, name, type}: RN pasa el archivo directo al streaming de OkHttp sin
+    // leerlo en JS (convertRequestBody → RequestBodyUtil.getFileInputStream,
+    // que sí soporta file:// y content://). En iOS/web el fetch → Blob sí
+    // funciona (verificado con iPhone real).
+    let cuerpo: any;
+    if (Platform.OS === 'android') {
+      cuerpo = { uri: foto.uri, name: nombreArchivo, type: mime };
+    } else {
+      const respuesta = await fetch(foto.uri);
+      // Blindaje: si el fetch falla, que reviente aquí y NO suba basura
+      if (!respuesta.ok) {
+        throw new Error(`No se pudo leer la foto del dispositivo (código ${respuesta.status}).`);
+      }
+      const blob = await respuesta.blob();
+      if (!blob || blob.size === 0) {
+        throw new Error('La foto seleccionada está vacía o ilegible.');
+      }
+      cuerpo = blob;
+    }
 
     const { error } = await supabase.storage
       .from('objetos-fotos')
-      .upload(ruta, blob, { contentType: mime });
+      .upload(ruta, cuerpo, { contentType: mime });
 
     if (error) {
       console.error('Error al subir la foto:', error);
