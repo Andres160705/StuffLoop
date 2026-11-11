@@ -1,8 +1,28 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  ScrollView, 
+  Alert, 
+  ActivityIndicator, 
+  KeyboardAvoidingView, 
+  Platform,
+  Image 
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { CatalogoHeader } from '@/components/CatalogoHeader';
 import { objetosService } from '../../services/objetosService';
 import { TipoPublicacion } from '../../types/objeto';
+import { CATEGORIAS } from '../../constants/categorias';
+import { Colors } from '../../constants/colors';
+
+// En pantallas grandes (tablet/web) el formulario se centra en una columna tipo móvil
+const ANCHO_MAXIMO = 600;
 
 export default function PublicarObjeto() {
   const router = useRouter();
@@ -11,85 +31,299 @@ export default function PublicarObjeto() {
   const [categoria, setCategoria] = useState('Herramientas');
   const [tipo, setTipo] = useState<TipoPublicacion>('prestamo');
   const [condiciones, setCondiciones] = useState('');
-  const [imagenUrl, setImagenUrl] = useState('');
+  const [foto, setFoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [diasTexto, setDiasTexto] = useState('');
   const [guardando, setGuardando] = useState(false);
 
+  const elegirDeGaleria = async () => {
+    // El selector de fotos del sistema no pide permiso (Android 13+ / iOS 14+)
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+    if (!resultado.canceled) {
+      setFoto(resultado.assets[0]);
+    }
+  };
+
+  const tomarFoto = async () => {
+    // La cámara siempre requiere permiso explícito del usuario
+    const permiso = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permiso.granted) {
+      Alert.alert('Sin permiso', 'Necesitamos acceso a la cámara para tomar la foto.');
+      return;
+    }
+    const resultado = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+    if (!resultado.canceled) {
+      setFoto(resultado.assets[0]);
+    }
+  };
+
   const guardar = async () => {
-    if (!titulo || !descripcion || !imagenUrl) {
-      Alert.alert('Campos requeridos', 'Por favor completa el título, descripción e imagen.');
+    if (!titulo || !descripcion || !foto) {
+      Alert.alert('Campos requeridos', 'Por favor completa el título, descripción y foto.');
       return;
     }
 
+    // "Días máximos de préstamo": entero opcional (vacío → null)
+    const dias = parseInt(diasTexto, 10);
+    const diasMaxPrestamo = Number.isNaN(dias) ? null : dias;
+
     try {
       setGuardando(true);
+      // 1) Subir la foto al Storage de Supabase → URL pública
+      const urlFoto = await objetosService.subirFoto(foto);
+      // 2) Crear el objeto con esa URL
       await objetosService.crearObjeto({
         titulo,
         descripcion,
         categoria,
         tipo,
         condiciones,
-        imagenUrl,
+        imagenUrl: urlFoto,
         estado: 'disponible',
-        usuarioId: 'user_temp_id',
-        usuarioNombre: 'Usuario Actual'
+        diasMaxPrestamo,
+        usuarioId: '',      // el servicio usa el id del usuario logueado
+        usuarioNombre: '',  // el servicio usa nombre/email del usuario logueado
       });
+
       Alert.alert('Éxito', 'Objeto publicado correctamente.');
-      router.back();
+      // Vuelve al catálogo pidiendo que la lista se refresque (param "actualizar")
+      router.navigate({ pathname: '/catalogo', params: { actualizar: String(Date.now()) } });
     } catch (error) {
-      Alert.alert('Error', 'No se pudo publicar el objeto.');
+      // Mostramos el mensaje real de Supabase/Postgres (antes era genérico)
+      const mensaje = (error as any)?.message;
+      Alert.alert('Error al publicar', mensaje || 'No se pudo publicar el objeto.');
     } finally {
       setGuardando(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.label}>Título del Objeto</Text>
-      <TextInput style={styles.input} value={titulo} onChangeText={setTitulo} placeholder="Ej. Taladro Inalámbrico" />
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      {/* Header propio: empuja el contenido, no se superpone */}
+      <CatalogoHeader title="Publicar objeto" mostrarAtras />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.contenido}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={[styles.label, styles.labelPrimero]}>Título del Objeto</Text>
+        <TextInput 
+          style={styles.input}
+          value={titulo} 
+          onChangeText={setTitulo} 
+          placeholder="Ej. Taladro Inalámbrico" 
+          placeholderTextColor="#94A3B8"
+          autoCapitalize="sentences"
+          returnKeyType="next"
+        />
 
-      <Text style={styles.label}>Modalidad</Text>
-      <View style={styles.row}>
-        <TouchableOpacity 
-          style={[styles.typeBtn, tipo === 'prestamo' && styles.typeBtnActive]} 
-          onPress={() => setTipo('prestamo')}
+        <Text style={styles.label}>Categoría</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriasRow}
         >
-          <Text style={tipo === 'prestamo' ? styles.typeTextActive : styles.typeText}>Préstamo</Text>
-        </TouchableOpacity>
+          {CATEGORIAS.map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[styles.chip, categoria === cat && styles.chipActivo]}
+              onPress={() => setCategoria(cat)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.chipTexto, categoria === cat && styles.chipTextoActivo]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <Text style={styles.label}>Modalidad</Text>
+        <View style={styles.row}>
+          <TouchableOpacity 
+            style={[styles.typeBtn, tipo === 'prestamo' && styles.typeBtnActive]} 
+            onPress={() => setTipo('prestamo')}
+            activeOpacity={0.8}
+          >
+            <Text style={tipo === 'prestamo' ? styles.typeTextActive : styles.typeText}>Préstamo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.typeBtn, tipo === 'intercambio' && styles.typeBtnActive]} 
+            onPress={() => setTipo('intercambio')}
+            activeOpacity={0.8}
+          >
+            <Text style={tipo === 'intercambio' ? styles.typeTextActive : styles.typeText}>Intercambio</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.label}>Días máximos de préstamo (opcional)</Text>
+        <TextInput 
+          style={styles.input}
+          value={diasTexto} 
+          onChangeText={setDiasTexto} 
+          placeholder="Ej. 7" 
+          placeholderTextColor="#94A3B8"
+          keyboardType="number-pad"
+          maxLength={3}
+          returnKeyType="done"
+        />
+
+        <Text style={styles.label}>Foto del objeto</Text>
+        <View style={styles.fotoBox}>
+          {foto ? (
+            <Image source={{ uri: foto.uri }} style={styles.fotoPreview} />
+          ) : (
+            <View style={styles.fotoVacia}>
+              <Ionicons name="image-outline" size={42} color="#94A3B8" />
+              <Text style={styles.fotoVaciaTexto}>
+                Toma una foto o elige una de tu galería
+              </Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.fotoBotones}>
+          <TouchableOpacity style={styles.fotoBtn} onPress={tomarFoto} activeOpacity={0.8}>
+            <Ionicons name="camera-outline" size={20} color={Colors.primary} />
+            <Text style={styles.fotoBtnTexto}>Tomar foto</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.fotoBtn} onPress={elegirDeGaleria} activeOpacity={0.8}>
+            <Ionicons name="images-outline" size={20} color={Colors.primary} />
+            <Text style={styles.fotoBtnTexto}>Galería</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.label}>Descripción</Text>
+        <TextInput 
+          style={[styles.input, styles.textArea]} 
+          value={descripcion} 
+          onChangeText={setDescripcion} 
+          placeholder="Describe tu objeto: estado, accesorios, etc." 
+          placeholderTextColor="#94A3B8"
+          multiline
+          textAlignVertical="top"
+        />
+
+        <Text style={styles.label}>Condiciones (opcional)</Text>
+        <TextInput 
+          style={styles.input}
+          value={condiciones} 
+          onChangeText={setCondiciones} 
+          placeholder="Ej. Devuelvo en máximo 3 días" 
+          placeholderTextColor="#94A3B8"
+          autoCapitalize="sentences"
+        />
+
         <TouchableOpacity 
-          style={[styles.typeBtn, tipo === 'intercambio' && styles.typeBtnActive]} 
-          onPress={() => setTipo('intercambio')}
+          style={[styles.submitBtn, guardando && styles.submitBtnDisabled]} 
+          onPress={guardar} 
+          disabled={guardando}
+          activeOpacity={0.8}
         >
-          <Text style={tipo === 'intercambio' ? styles.typeTextActive : styles.typeText}>Intercambio</Text>
+          {guardando ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.submitBtnText}>Publicar Objeto</Text>
+          )}
         </TouchableOpacity>
-      </View>
-
-      <Text style={styles.label}>URL de la Imagen</Text>
-      <TextInput style={styles.input} value={imagenUrl} onChangeText={setImagenUrl} placeholder="https://..." />
-
-      <Text style={styles.label}>Descripción</Text>
-      <TextInput style={[styles.input, styles.textArea]} value={descripcion} onChangeText={setDescripcion} multiline numberOfLines={4} />
-
-      <Text style={styles.label}>Condiciones (opcional)</Text>
-      <TextInput style={styles.input} value={condiciones} onChangeText={setCondiciones} placeholder="Ej. Devuelvo en máximo 3 días" />
-
-      <TouchableOpacity style={styles.submitBtn} onPress={guardar} disabled={guardando}>
-        {guardando ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Publicar Objeto</Text>}
-      </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#FFF' },
-  label: { fontSize: 14, fontWeight: 'bold', color: '#334155', marginTop: 12, marginBottom: 6 },
-  input: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 12, fontSize: 16 },
-  textArea: { height: 100, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', gap: 10 },
-  typeBtn: { flex: 1, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#CBD5E1', alignItems: 'center' },
-  typeBtnActive: { backgroundColor: '#00875A', borderColor: '#00875A' },
-  typeText: { color: '#64748B', fontWeight: 'bold' },
-  typeTextActive: { color: '#FFF', fontWeight: 'bold' },
-  submitBtn: { backgroundColor: '#00875A', padding: 16, borderRadius: 10, alignItems: 'center', marginTop: 24, marginBottom: 40 },
+  container: { flex: 1, backgroundColor: '#FFF' },
+  scroll: { flex: 1 },
+  // Columna centrada con ancho máximo: en móvil ocupa todo el ancho
+  contenido: { 
+    width: '100%', 
+    maxWidth: ANCHO_MAXIMO, 
+    alignSelf: 'center', 
+    padding: 20, 
+    paddingBottom: 40 
+  },
+  label: { fontSize: 15, fontWeight: '600', color: '#334155', marginTop: 20, marginBottom: 8 },
+  labelPrimero: { marginTop: 0 },
+  // Altura táctil mínima de 50px: cómodo para el dedo y tipografía legible
+  input: { 
+    backgroundColor: '#F8FAFC', 
+    borderWidth: 1, 
+    borderColor: '#CBD5E1', 
+    borderRadius: 10, 
+    paddingHorizontal: 14, 
+    paddingVertical: 13, 
+    minHeight: 50, 
+    fontSize: 16, 
+    color: '#0F172A' 
+  },
+  textArea: { minHeight: 120 },
+  row: { flexDirection: 'row', gap: 12 },
+  categoriasRow: { gap: 8, paddingBottom: 4 },
+  fotoBox: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderStyle: 'dashed',
+  },
+  fotoPreview: { width: '100%', height: 220 },
+  fotoVacia: { height: 220, justifyContent: 'center', alignItems: 'center', gap: 10 },
+  fotoVaciaTexto: { color: '#94A3B8', fontSize: 14, textAlign: 'center', paddingHorizontal: 24 },
+  fotoBotones: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  fotoBtn: {
+    flex: 1,
+    minHeight: 50,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    backgroundColor: '#FFF',
+  },
+  fotoBtnTexto: { color: Colors.primary, fontWeight: '700', fontSize: 15 },
+  chip: { 
+    paddingHorizontal: 16, 
+    minHeight: 38, 
+    justifyContent: 'center', 
+    borderRadius: 19, 
+    backgroundColor: '#E2E8F0' 
+  },
+  chipActivo: { backgroundColor: Colors.primary },
+  chipTexto: { color: '#475569', fontWeight: '500', fontSize: 13 },
+  chipTextoActivo: { color: '#FFF' },
+  typeBtn: { 
+    flex: 1, 
+    minHeight: 50, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    padding: 12, 
+    borderRadius: 10, 
+    borderWidth: 1, 
+    borderColor: '#CBD5E1' 
+  },
+  typeBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  typeText: { color: '#64748B', fontWeight: 'bold', fontSize: 15 },
+  typeTextActive: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
+  submitBtn: { 
+    backgroundColor: Colors.primary, 
+    minHeight: 54, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    borderRadius: 12, 
+    marginTop: 28
+  },
+  submitBtnDisabled: { opacity: 0.65 },
   submitBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
 });
-

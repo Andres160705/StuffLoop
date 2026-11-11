@@ -13,6 +13,7 @@ export interface Objeto {
   usuarioId: string;
   usuarioNombre: string;
   distanciaKm?: number;
+  diasMaxPrestamo?: number | null;
   creadoEn?: string;
   created_at?: string;
 }

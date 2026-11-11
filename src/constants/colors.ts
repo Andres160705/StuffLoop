@@ -8,4 +8,6 @@ export const Colors = {
   muted: "#8A8FA3",
   placeholder: "#6B7280",
   error: "#D93025",
+  badgePrestamo: "#2563EB", // azul para objetos en préstamo
+  badgeIntercambio: "#D97706", // ámbar para objetos de intercambio
 };

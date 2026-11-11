@@ -1,11 +1,13 @@
 import { supabase } from "@/supabase";
-import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
+import { makeRedirectUri } from "expo-auth-session";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export async function signInWithGoogle(): Promise<boolean> {
-  const redirectTo = Linking.createURL("auth");
+  // Misma URL de redirect que ya estaba configurada en Supabase/Google:
+  // 'stuffloop://...' en builds nativas, 'exp://...' en Expo Go
+  const redirectTo = makeRedirectUri({ scheme: "stuffloop" });
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

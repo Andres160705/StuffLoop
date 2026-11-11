@@ -33,7 +33,15 @@
           "imageWidth": 76
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "StuffLoop accede a tus fotos para que publiques objetos con su imagen.",
+          "cameraPermission": "StuffLoop usa la cámara para tomar fotos de tus objetos.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

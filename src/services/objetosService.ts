@@ -1,12 +1,79 @@
 import { supabase } from '../supabase';
-import { Objeto } from '../types/objeto';
+import { Objeto, TipoPublicacion } from '../types/objeto';
+import { CATEGORIA_APP_A_DB, CATEGORIA_DB_A_APP } from '../constants/categorias';
+
+// Mapa de modalidades: la app habla "prestamo/intercambio", pero el enum
+// `modalidad_objeto` de la tabla solo acepta "prestamo" y "trueque"
+const MODALIDAD_APP_A_DB: Record<string, string> = {
+  prestamo: 'prestamo',
+  intercambio: 'trueque',
+};
+const MODALIDAD_DB_A_APP: Record<string, string> = {
+  prestamo: 'prestamo',
+  trueque: 'intercambio',
+};
+
+// Traduce una fila de la tabla (columnas reales + enums) a la forma camelCase
+// que usa el resto de la app
+function normalizarObjeto(item: any): Objeto {
+  return {
+    ...item,
+    // Sin placeholder externo: via.placeholder.com está muerto; si no hay
+    // foto, la UI muestra un respaldo propio (components/ObjetoImagen)
+    imagenUrl: item.foto_url || item.imagenUrl || '',
+    usuarioNombre: item.nombre || item.usuarioNombre || 'Vecino',
+    usuarioId: item.id_usuario_propietario || item.usuario_id || item.usuarioId || '',
+    condiciones: item.condicion || item.condiciones || '',
+    diasMaxPrestamo: item.dias_max_prestamo ?? null,
+    creadoEn: item.fecha_publicacion || item.creadoEn,
+    tipo: (MODALIDAD_DB_A_APP[item.modalidad] || item.tipo || 'prestamo') as TipoPublicacion,
+    estado: item.estado_objeto || item.estado || 'disponible',
+    categoria: CATEGORIA_DB_A_APP[item.categoria] || item.categoria || 'Otros',
+  } as Objeto;
+}
+
+// Foto local lista para subir (viene de expo-image-picker)
+export interface FotoParaSubir {
+  uri: string;
+  mimeType?: string | null;
+  fileName?: string | null;
+}
 
 export const objetosService = {
+  /**
+   * Sube una foto (cámara o galería) al bucket "objetos-fotos" de Supabase
+   * Storage y devuelve su URL pública, lista para guardar en foto_url.
+   */
+  async subirFoto(foto: FotoParaSubir): Promise<string> {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // fetch(file://...) → Blob funciona en RN y en web
+    const respuesta = await fetch(foto.uri);
+    const blob = await respuesta.blob();
+
+    const mime = foto.mimeType || 'image/jpeg';
+    const extension = mime.split('/')[1] || 'jpg';
+    const ruta = `${user?.id || 'sin-sesion'}/${Date.now()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from('objetos-fotos')
+      .upload(ruta, blob, { contentType: mime });
+
+    if (error) {
+      console.error('Error al subir la foto:', error);
+      throw error;
+    }
+
+    const { data } = supabase.storage.from('objetos-fotos').getPublicUrl(ruta);
+    return data.publicUrl;
+  },
+
   async obtenerObjetos(categoria?: string, busqueda?: string): Promise<Objeto[]> {
     let query = supabase.from('objetos').select('*');
 
     if (categoria && categoria !== 'Todos') {
-      query = query.eq('categoria', categoria);
+      const categoriaDb = CATEGORIA_APP_A_DB[categoria] ?? categoria.toLowerCase();
+      query = query.eq('categoria', categoriaDb);
     }
 
     if (busqueda && busqueda.trim() !== '') {
@@ -20,14 +87,7 @@ export const objetosService = {
       throw error;
     }
 
-    const objetosFormateados = (data || []).map((item: any) => ({
-      ...item,
-      imagenUrl: item.imagenUrl || item.imagen_url || 'https://via.placeholder.com/150',
-      usuarioNombre: item.usuarioNombre || item.usuario_nombre || 'Vecino',
-      usuarioId: item.usuarioId || item.usuario_id || '',
-    }));
-
-    return objetosFormateados as Objeto[];
+    return (data || []).map(normalizarObjeto);
   },
 
   async obtenerPorId(id: string): Promise<Objeto | null> {
@@ -43,34 +103,41 @@ export const objetosService = {
     }
 
     if (!data) return null;
-
-    return {
-      ...data,
-      imagenUrl: data.imagenUrl || data.imagen_url || 'https://via.placeholder.com/150',
-      usuarioNombre: data.usuarioNombre || data.usuario_nombre || 'Vecino',
-      usuarioId: data.usuarioId || data.usuario_id || '',
-    } as Objeto;
+    return normalizarObjeto(data);
   },
 
   async crearObjeto(nuevoObjeto: Omit<Objeto, 'id' | 'creadoEn' | 'created_at'>): Promise<Objeto> {
     const { data: { user } } = await supabase.auth.getUser();
 
-    const usuarioIdFinal = user?.id || nuevoObjeto.usuarioId || 'user_anonimo';
-    const usuarioNombreFinal = user?.user_metadata?.full_name || user?.email || nuevoObjeto.usuarioNombre || 'Vecino';
+    const usuarioIdFinal = user?.id || nuevoObjeto.usuarioId || '';
+    // El registro con email guarda "nombre" y Google suele guardar "full_name"
+    const usuarioNombreFinal =
+      user?.user_metadata?.nombre ||
+      user?.user_metadata?.full_name ||
+      user?.email ||
+      nuevoObjeto.usuarioNombre ||
+      'Vecino';
 
+    // Columnas REALES de la tabla objetos (orden del Table Editor):
+    // id_objeto (uuid, se omite: Postgres lo genera), id_usuario_propietario
+    // (uuid NOT NULL: quién publicó), nombre, categoria (enum), descripcion,
+    // condicion, dias_max_prestamo (int), modalidad (enum), estado_objeto
+    // (enum), foto_url, fecha_publicacion (timestamptz), id (uuid, default),
+    // titulo, propietario_id (uuid), disponible (bool)
     const payload = {
+      id_usuario_propietario: usuarioIdFinal || null, // NOT NULL: dueño del objeto
       titulo: nuevoObjeto.titulo,
       descripcion: nuevoObjeto.descripcion,
-      categoria: nuevoObjeto.categoria,
-      tipo: nuevoObjeto.tipo,
-      estado: nuevoObjeto.estado || 'disponible',
-      condiciones: nuevoObjeto.condiciones,
-      imagen_url: nuevoObjeto.imagenUrl,
-      usuario_id: usuarioIdFinal,
-      usuario_nombre: usuarioNombreFinal,
-      imagenUrl: nuevoObjeto.imagenUrl,
-      usuarioId: usuarioIdFinal,
-      usuarioNombre: usuarioNombreFinal,
+      categoria: CATEGORIA_APP_A_DB[nuevoObjeto.categoria] ?? nuevoObjeto.categoria.toLowerCase(),
+      modalidad: MODALIDAD_APP_A_DB[nuevoObjeto.tipo] || 'prestamo',
+      estado_objeto: 'disponible',
+      disponible: true,
+      condicion: nuevoObjeto.condiciones || '',
+      dias_max_prestamo: nuevoObjeto.diasMaxPrestamo ?? null,
+      foto_url: nuevoObjeto.imagenUrl,
+      fecha_publicacion: new Date().toISOString(),
+      propietario_id: usuarioIdFinal || null, // columna espejo que trae la tabla
+      nombre: usuarioNombreFinal,
     };
 
     const { data, error } = await supabase
@@ -84,7 +151,7 @@ export const objetosService = {
       throw error;
     }
 
-    return data as Objeto;
+    return normalizarObjeto(data);
   }
 };
 
