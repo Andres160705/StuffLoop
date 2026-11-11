@@ -38,6 +38,32 @@ export interface FotoParaSubir {
   uri: string;
   mimeType?: string | null;
   fileName?: string | null;
+  // Base64 del archivo (expo-image-picker con `base64: true`). En Android es
+  // la vía preferida: viaja como URI data: directo al streaming nativo.
+  base64?: string | null;
+}
+
+/**
+ * Descriptor de archivo para la subida nativa en React Native.
+ *
+ * ¡TIENE que ser una clase y NO un objeto plano! storage-js hace
+ * JSON.stringify de cualquier body que sea un objeto plano (detector p() de
+ * su bundle): con `{uri, name, type}` plano sube el TEXTO de ese JSON al
+ * bucket en vez de la foto (bug real: archivos de 236 bytes con puro JSON).
+ * Una instancia de clase no es "objeto plano" para ese detector y pasa
+ * intacta hasta el networking nativo de RN, que transmite el archivo por
+ * streaming sin leerlo en JS.
+ */
+class ArchivoNativo {
+  uri: string;
+  name: string;
+  type: string;
+
+  constructor(uri: string, name: string, type: string) {
+    this.uri = uri;
+    this.name = name;
+    this.type = type;
+  }
 }
 
 export const objetosService = {
@@ -57,13 +83,14 @@ export const objetosService = {
     // la foto con fetch(file://...): está roto desde RN 0.82 (issue #54626) y
     // devuelve basura ("File not found") o falla — y esa basura se subía al
     // bucket como si fuera la foto. En Android usamos el descriptor nativo
-    // {uri, name, type}: RN pasa el archivo directo al streaming de OkHttp sin
-    // leerlo en JS (convertRequestBody → RequestBodyUtil.getFileInputStream,
-    // que sí soporta file:// y content://). En iOS/web el fetch → Blob sí
-    // funciona (verificado con iPhone real).
+    // ArchivoNativo (ver comentario de la clase) con una URI data: cuando el
+    // picker nos dio el base64 — el networking nativo de RN la decodifica
+    // directo sin depender de paths file:// raros de Expo Go. En iOS/web el
+    // fetch → Blob sí funciona (verificado con iPhone real).
     let cuerpo: any;
     if (Platform.OS === 'android') {
-      cuerpo = { uri: foto.uri, name: nombreArchivo, type: mime };
+      const uri = foto.base64 ? `data:${mime};base64,${foto.base64}` : foto.uri;
+      cuerpo = new ArchivoNativo(uri, nombreArchivo, mime);
     } else {
       const respuesta = await fetch(foto.uri);
       // Blindaje: si el fetch falla, que reviente aquí y NO suba basura

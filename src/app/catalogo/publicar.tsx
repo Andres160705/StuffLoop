@@ -42,6 +42,9 @@ export default function PublicarObjeto() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
+      // El base64 alimenta la subida nativa en Android (URI data:) — ver
+      // objetosService.subirFoto
+      base64: true,
     });
     if (!resultado.canceled) {
       setFoto(resultado.assets[0]);
@@ -59,6 +62,9 @@ export default function PublicarObjeto() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
+      // El base64 alimenta la subida nativa en Android (URI data:) — ver
+      // objetosService.subirFoto
+      base64: true,
     });
     if (!resultado.canceled) {
       setFoto(resultado.assets[0]);
