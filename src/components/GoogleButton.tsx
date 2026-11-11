@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { signInWithGoogle } from '@/googleAuth';
 import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
 
 export default function GoogleButton() {
   const router = useRouter();
@@ -79,16 +80,18 @@ export default function GoogleButton() {
 const styles = StyleSheet.create({
   container: { width: '100%' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
-  line: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
-  dividerText: { marginHorizontal: 10, color: '#64748B', fontSize: 13 },
+  line: { flex: 1, height: 1, backgroundColor: Colors.border },
+  dividerText: { fontFamily: Fonts.regular, marginHorizontal: 10, color: Colors.textSoft, fontSize: 13 },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
     height: 54,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    backgroundColor: Colors.card,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
   },
-  text: { color: '#0F172A', fontSize: 15, fontWeight: '700' },
+  text: { fontFamily: Fonts.bold, color: Colors.text, fontSize: 15 },
 });

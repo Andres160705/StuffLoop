@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Image, ImageStyle, StyleProp, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/constants/colors';
 
 interface ObjetoImagenProps {
   /** URL de la foto; puede venir vacía si el objeto no tiene */
@@ -21,7 +22,7 @@ export function ObjetoImagen({ uri, style }: ObjetoImagenProps) {
   if (!mostrarImagen) {
     return (
       <View style={[style, styles.respaldo]}>
-        <Ionicons name="image-outline" size={36} color="#94A3B8" />
+        <Ionicons name="image-outline" size={36} color={Colors.muted} />
       </View>
     );
   }
@@ -39,6 +40,6 @@ const styles = StyleSheet.create({
   respaldo: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: Colors.inputBg,
   },
 });

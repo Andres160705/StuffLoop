@@ -2,6 +2,7 @@ import React from "react";
 import AuthField from "@/components/AuthField";
 import GoogleButton from "@/components/GoogleButton";
 import { Colors } from "@/constants/colors";
+import { Fonts } from "@/constants/fonts";
 import { supabase } from "@/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
@@ -129,53 +130,49 @@ const styles = StyleSheet.create({
   logo: {
     width: 72,
     height: 72,
-    borderRadius: 20,
+    borderRadius: 18,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   brand: {
-    fontSize: 30,
-    fontWeight: "800",
+    fontFamily: Fonts.extrabold,
+    fontSize: 32,
     color: Colors.primary,
-    marginTop: 12,
+    marginTop: 14,
   },
   subtitle: {
+    fontFamily: Fonts.medium,
     textAlign: "center",
-    color: Colors.muted,
-    marginTop: 6,
-    lineHeight: 20,
+    color: Colors.textSoft,
+    marginTop: 4,
+    lineHeight: 21,
   },
   card: {
     backgroundColor: Colors.card,
-    borderRadius: 24,
-    padding: 22,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    borderRadius: 20,
+    padding: 20,
   },
   title: {
+    fontFamily: Fonts.extrabold,
     fontSize: 24,
-    fontWeight: "800",
     color: Colors.text,
     marginBottom: 18,
   },
-  fields: { gap: 14 },
+  fields: { gap: 12 },
   forgot: { alignSelf: "flex-end", marginTop: 12, marginBottom: 20 },
-  forgotText: { color: Colors.primary, fontWeight: "600", fontSize: 13 },
+  forgotText: { fontFamily: Fonts.semibold, color: Colors.primary, fontSize: 13 },
   button: {
     flexDirection: "row",
     gap: 8,
     height: 54,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  buttonText: { fontFamily: Fonts.bold, color: "#fff", fontSize: 16 },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 24 },
-  footerText: { color: Colors.muted },
-  footerLink: { color: Colors.primary, fontWeight: "700" },
+  footerText: { fontFamily: Fonts.regular, color: Colors.textSoft },
+  footerLink: { fontFamily: Fonts.bold, color: Colors.primary },
 });

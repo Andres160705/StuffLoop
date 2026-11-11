@@ -45,7 +45,15 @@ export default function CatalogoLayout() {
 
   // El header es propio de cada pantalla (components/CatalogoHeader): se
   // renderiza dentro del flujo del layout y nunca se monta sobre el contenido
-  return <Stack screenOptions={{ headerShown: false }} />;
+  // Explorar, Intercambio y Mi perfil se cambian desde la barra inferior con
+  // router.replace: sin animación para que se sientan como pestañas
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" options={{ animation: 'none' }} />
+      <Stack.Screen name="intercambio" options={{ animation: 'none' }} />
+      <Stack.Screen name="perfil" options={{ animation: 'none' }} />
+    </Stack>
+  );
 }
 
 const styles = StyleSheet.create({

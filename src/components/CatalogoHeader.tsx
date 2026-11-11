@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
 
 interface CatalogoHeaderProps {
   title: string;
@@ -48,30 +49,29 @@ export function CatalogoHeader({ title, mostrarAtras = false, derecha }: Catalog
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFF',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E2E8F0',
+    backgroundColor: Colors.background,
   },
   bar: {
-    height: 52,
+    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.card,
     justifyContent: 'center',
     alignItems: 'center',
   },
   // flex: 1 hace que "derecha" (el avatar) quede pegado al borde derecho
   title: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginLeft: 8,
+    fontFamily: Fonts.extrabold,
+    fontSize: 20,
+    color: Colors.text,
+    marginLeft: 12,
     marginRight: 8,
   },
 });

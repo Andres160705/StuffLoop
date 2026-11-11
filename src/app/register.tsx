@@ -1,20 +1,21 @@
 import AuthField from "@/components/AuthField";
 import GoogleButton from "@/components/GoogleButton";
 import { Colors } from "@/constants/colors";
+import { Fonts } from "@/constants/fonts";
 import { supabase } from "@/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -55,7 +56,7 @@ export default function Register() {
     if (error) return Alert.alert("No se pudo registrar", error.message);
 
     Alert.alert("¡Cuenta creada!", "Ya puedes iniciar sesión.", [
-      { text: "OK", onPress: () => router.replace("/login") },
+      { text: "OK", onPress: () => router.replace("/catalogo") },
     ]);
   };
 
@@ -154,33 +155,28 @@ const styles = StyleSheet.create({
   logo: {
     width: 64,
     height: 64,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brand: { fontSize: 26, fontWeight: "800", color: Colors.text, marginTop: 12 },
-  subtitle: { color: Colors.muted, marginTop: 4 },
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: 24,
-    padding: 22,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  fields: { gap: 14, marginBottom: 22 },
-  button: {
-    height: 54,
     borderRadius: 16,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  brand: { fontFamily: Fonts.extrabold, fontSize: 28, color: Colors.primary, marginTop: 12 },
+  subtitle: { fontFamily: Fonts.medium, color: Colors.textSoft, marginTop: 4 },
+  card: {
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    padding: 20,
+  },
+  fields: { gap: 12, marginBottom: 22 },
+  button: {
+    height: 54,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: { fontFamily: Fonts.bold, color: "#fff", fontSize: 16 },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 24 },
-  footerText: { color: Colors.muted },
-  footerLink: { color: Colors.primary, fontWeight: "700" },
+  footerText: { fontFamily: Fonts.regular, color: Colors.textSoft },
+  footerLink: { fontFamily: Fonts.bold, color: Colors.primary },
 });

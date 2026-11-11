@@ -2,9 +2,11 @@ export const Colors = {
   primary: "#007A5A", // verde oscuro (botones, logo, textos de marca)
   accent: "#5CAB1F", // verde brillante (botón Publicar)
   background: "#EEF0FF", // fondo lavanda
-  inputBg: "#DCE4FA", // fondo de inputs
+  inputBg: "#DCE4FA", // fondo de inputs y de la caja del dueño en las tarjetas
   card: "#FFFFFF",
+  border: "#D5DCF3", // borde suave de chips y campos sobre blanco
   text: "#0B0B0B",
+  textSoft: "#4B5068", // textos secundarios sobre blanco
   muted: "#8A8FA3",
   placeholder: "#6B7280",
   error: "#D93025",

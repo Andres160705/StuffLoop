@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/supabase';
 import { Colors } from '@/constants/colors';
+import { Fonts } from '@/constants/fonts';
 
 /**
  * Círculo de usuario arriba a la derecha del header del catálogo.
@@ -24,20 +25,13 @@ export function UserMenu() {
   const [abierto, setAbierto] = useState(false);
   const [cerrando, setCerrando] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [inicial, setInicial] = useState('');
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      // Google guarda la foto en avatar_url; con email usamos la inicial
+      // Google guarda la foto en avatar_url; con email se muestra el icono
       setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
-      const nombre =
-        user?.user_metadata?.nombre ||
-        user?.user_metadata?.full_name ||
-        user?.email ||
-        '';
-      setInicial(nombre.charAt(0).toUpperCase());
     });
   }, []);
 
@@ -68,10 +62,8 @@ export function UserMenu() {
       >
         {avatarUrl ? (
           <Image source={{ uri: avatarUrl }} style={styles.avatarImagen} />
-        ) : inicial ? (
-          <Text style={styles.avatarTexto}>{inicial}</Text>
         ) : (
-          <Ionicons name="person" size={20} color="#FFF" />
+          <Ionicons name="person-outline" size={24} color="#FFF" />
         )}
       </TouchableOpacity>
 
@@ -86,7 +78,7 @@ export function UserMenu() {
           {/* Tarjeta anclada debajo del círculo; tocar la tarjeta no la cierra */}
           <TouchableOpacity
             activeOpacity={1}
-            style={[styles.menu, { top: insets.top + 58 }]}
+            style={[styles.menu, { top: insets.top + 68 }]}
             onPress={() => {}}
           >
             <TouchableOpacity
@@ -111,20 +103,19 @@ export function UserMenu() {
 
 const styles = StyleSheet.create({
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
   },
-  avatarImagen: { width: 36, height: 36 },
-  avatarTexto: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  avatarImagen: { width: 48, height: 48 },
   fondo: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.3)' },
   menu: {
     position: 'absolute',
-    right: 8,
+    right: 16,
     backgroundColor: '#FFF',
     borderRadius: 12,
     padding: 6,
@@ -143,5 +134,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 8,
   },
-  itemTexto: { color: '#DC2626', fontSize: 15, fontWeight: '600' },
+  itemTexto: { color: '#DC2626', fontSize: 15, fontFamily: Fonts.semibold },
 });

@@ -20,6 +20,7 @@ import { objetosService } from '../../services/objetosService';
 import { TipoPublicacion } from '../../types/objeto';
 import { CATEGORIAS } from '../../constants/categorias';
 import { Colors } from '../../constants/colors';
+import { Fonts } from '../../constants/fonts';
 
 // En pantallas grandes (tablet/web) el formulario se centra en una columna tipo móvil
 const ANCHO_MAXIMO = 600;
@@ -99,7 +100,7 @@ export default function PublicarObjeto() {
         usuarioNombre: '',  // el servicio usa nombre/email del usuario logueado
       });
 
-      Alert.alert('Éxito', 'Objeto publicado correctamente.');
+      Alert.alert('Objeto publicado', 'Ya aparece en el catálogo para tus vecinos.');
       // Vuelve al catálogo pidiendo que la lista se refresque (param "actualizar")
       router.navigate({ pathname: '/catalogo', params: { actualizar: String(Date.now()) } });
     } catch (error) {
@@ -123,153 +124,155 @@ export default function PublicarObjeto() {
         contentContainerStyle={styles.contenido}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={[styles.label, styles.labelPrimero]}>Título del Objeto</Text>
-        <TextInput 
-          style={styles.input}
-          value={titulo} 
-          onChangeText={setTitulo} 
-          placeholder="Ej. Taladro Inalámbrico" 
-          placeholderTextColor="#94A3B8"
-          autoCapitalize="sentences"
-          returnKeyType="next"
-        />
+        <View style={styles.tarjeta}>
+          <Text style={[styles.label, styles.labelPrimero]}>Título del objeto</Text>
+          <TextInput 
+            style={styles.input}
+            value={titulo} 
+            onChangeText={setTitulo} 
+            placeholder="Ej. Taladro Inalámbrico" 
+            placeholderTextColor={Colors.placeholder}
+            autoCapitalize="sentences"
+            returnKeyType="next"
+          />
 
-        <Text style={styles.label}>Categoría</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriasRow}
-        >
-          {CATEGORIAS.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.chip, categoria === cat && styles.chipActivo]}
-              onPress={() => setCategoria(cat)}
-              activeOpacity={0.7}
+          <Text style={styles.label}>Categoría</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriasRow}
+          >
+            {CATEGORIAS.map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[styles.chip, categoria === cat && styles.chipActivo]}
+                onPress={() => setCategoria(cat)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.chipTexto, categoria === cat && styles.chipTextoActivo]}>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={styles.label}>Modalidad</Text>
+          <View style={styles.row}>
+            <TouchableOpacity 
+              style={[styles.typeBtn, tipo === 'prestamo' && styles.typeBtnActive]} 
+              onPress={() => setTipo('prestamo')}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.chipTexto, categoria === cat && styles.chipTextoActivo]}>
-                {cat}
-              </Text>
+              <Text style={tipo === 'prestamo' ? styles.typeTextActive : styles.typeText}>Préstamo</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+            <TouchableOpacity 
+              style={[styles.typeBtn, tipo === 'intercambio' && styles.typeBtnActive]} 
+              onPress={() => setTipo('intercambio')}
+              activeOpacity={0.8}
+            >
+              <Text style={tipo === 'intercambio' ? styles.typeTextActive : styles.typeText}>Intercambio</Text>
+            </TouchableOpacity>
+          </View>
 
-        <Text style={styles.label}>Modalidad</Text>
-        <View style={styles.row}>
+          <Text style={styles.label}>Días máximos de préstamo (opcional)</Text>
+          <TextInput 
+            style={styles.input}
+            value={diasTexto} 
+            onChangeText={setDiasTexto} 
+            placeholder="Ej. 7" 
+            placeholderTextColor={Colors.placeholder}
+            keyboardType="number-pad"
+            maxLength={3}
+            returnKeyType="done"
+          />
+
+          <Text style={styles.label}>Foto del objeto</Text>
+          <View style={styles.fotoBox}>
+            {foto ? (
+              <Image source={{ uri: foto.uri }} style={styles.fotoPreview} />
+            ) : (
+              <View style={styles.fotoVacia}>
+                <Ionicons name="image-outline" size={42} color={Colors.muted} />
+                <Text style={styles.fotoVaciaTexto}>
+                  Toma una foto o elige una de tu galería
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.fotoBotones}>
+            <TouchableOpacity style={styles.fotoBtn} onPress={tomarFoto} activeOpacity={0.8}>
+              <Ionicons name="camera-outline" size={20} color={Colors.primary} />
+              <Text style={styles.fotoBtnTexto}>Tomar foto</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.fotoBtn} onPress={elegirDeGaleria} activeOpacity={0.8}>
+              <Ionicons name="images-outline" size={20} color={Colors.primary} />
+              <Text style={styles.fotoBtnTexto}>Galería</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.label}>Descripción</Text>
+          <TextInput 
+            style={[styles.input, styles.textArea]} 
+            value={descripcion} 
+            onChangeText={setDescripcion} 
+            placeholder="Describe tu objeto: estado, accesorios, etc." 
+            placeholderTextColor={Colors.placeholder}
+            multiline
+            textAlignVertical="top"
+          />
+
+          <Text style={styles.label}>Condiciones (opcional)</Text>
+          <TextInput 
+            style={styles.input}
+            value={condiciones} 
+            onChangeText={setCondiciones} 
+            placeholder="Ej. Devuelvo en máximo 3 días" 
+            placeholderTextColor={Colors.placeholder}
+            autoCapitalize="sentences"
+          />
+
           <TouchableOpacity 
-            style={[styles.typeBtn, tipo === 'prestamo' && styles.typeBtnActive]} 
-            onPress={() => setTipo('prestamo')}
+            style={[styles.submitBtn, guardando && styles.submitBtnDisabled]} 
+            onPress={guardar} 
+            disabled={guardando}
             activeOpacity={0.8}
           >
-            <Text style={tipo === 'prestamo' ? styles.typeTextActive : styles.typeText}>Préstamo</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.typeBtn, tipo === 'intercambio' && styles.typeBtnActive]} 
-            onPress={() => setTipo('intercambio')}
-            activeOpacity={0.8}
-          >
-            <Text style={tipo === 'intercambio' ? styles.typeTextActive : styles.typeText}>Intercambio</Text>
+            {guardando ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.submitBtnText}>Publicar objeto</Text>
+            )}
           </TouchableOpacity>
         </View>
-
-        <Text style={styles.label}>Días máximos de préstamo (opcional)</Text>
-        <TextInput 
-          style={styles.input}
-          value={diasTexto} 
-          onChangeText={setDiasTexto} 
-          placeholder="Ej. 7" 
-          placeholderTextColor="#94A3B8"
-          keyboardType="number-pad"
-          maxLength={3}
-          returnKeyType="done"
-        />
-
-        <Text style={styles.label}>Foto del objeto</Text>
-        <View style={styles.fotoBox}>
-          {foto ? (
-            <Image source={{ uri: foto.uri }} style={styles.fotoPreview} />
-          ) : (
-            <View style={styles.fotoVacia}>
-              <Ionicons name="image-outline" size={42} color="#94A3B8" />
-              <Text style={styles.fotoVaciaTexto}>
-                Toma una foto o elige una de tu galería
-              </Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.fotoBotones}>
-          <TouchableOpacity style={styles.fotoBtn} onPress={tomarFoto} activeOpacity={0.8}>
-            <Ionicons name="camera-outline" size={20} color={Colors.primary} />
-            <Text style={styles.fotoBtnTexto}>Tomar foto</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.fotoBtn} onPress={elegirDeGaleria} activeOpacity={0.8}>
-            <Ionicons name="images-outline" size={20} color={Colors.primary} />
-            <Text style={styles.fotoBtnTexto}>Galería</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.label}>Descripción</Text>
-        <TextInput 
-          style={[styles.input, styles.textArea]} 
-          value={descripcion} 
-          onChangeText={setDescripcion} 
-          placeholder="Describe tu objeto: estado, accesorios, etc." 
-          placeholderTextColor="#94A3B8"
-          multiline
-          textAlignVertical="top"
-        />
-
-        <Text style={styles.label}>Condiciones (opcional)</Text>
-        <TextInput 
-          style={styles.input}
-          value={condiciones} 
-          onChangeText={setCondiciones} 
-          placeholder="Ej. Devuelvo en máximo 3 días" 
-          placeholderTextColor="#94A3B8"
-          autoCapitalize="sentences"
-        />
-
-        <TouchableOpacity 
-          style={[styles.submitBtn, guardando && styles.submitBtnDisabled]} 
-          onPress={guardar} 
-          disabled={guardando}
-          activeOpacity={0.8}
-        >
-          {guardando ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <Text style={styles.submitBtnText}>Publicar Objeto</Text>
-          )}
-        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
+  container: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
   // Columna centrada con ancho máximo: en móvil ocupa todo el ancho
-  contenido: { 
-    width: '100%', 
-    maxWidth: ANCHO_MAXIMO, 
-    alignSelf: 'center', 
-    padding: 20, 
-    paddingBottom: 40 
+  contenido: {
+    width: '100%',
+    maxWidth: ANCHO_MAXIMO,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 40,
   },
-  label: { fontSize: 15, fontWeight: '600', color: '#334155', marginTop: 20, marginBottom: 8 },
+  tarjeta: { backgroundColor: Colors.card, borderRadius: 16, padding: 16 },
+  label: { fontFamily: Fonts.bold, fontSize: 15, color: Colors.text, marginTop: 20, marginBottom: 8 },
   labelPrimero: { marginTop: 0 },
   // Altura táctil mínima de 50px: cómodo para el dedo y tipografía legible
-  input: { 
-    backgroundColor: '#F8FAFC', 
-    borderWidth: 1, 
-    borderColor: '#CBD5E1', 
-    borderRadius: 10, 
-    paddingHorizontal: 14, 
-    paddingVertical: 13, 
-    minHeight: 50, 
-    fontSize: 16, 
-    color: '#0F172A' 
+  input: {
+    backgroundColor: Colors.inputBg,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    minHeight: 50,
+    fontFamily: Fonts.regular,
+    fontSize: 15,
+    color: Colors.text,
   },
   textArea: { minHeight: 120 },
   row: { flexDirection: 'row', gap: 12 },
@@ -277,59 +280,66 @@ const styles = StyleSheet.create({
   fotoBox: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
+    backgroundColor: Colors.background,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     borderStyle: 'dashed',
   },
   fotoPreview: { width: '100%', height: 220 },
-  fotoVacia: { height: 220, justifyContent: 'center', alignItems: 'center', gap: 10 },
-  fotoVaciaTexto: { color: '#94A3B8', fontSize: 14, textAlign: 'center', paddingHorizontal: 24 },
+  fotoVacia: { height: 200, justifyContent: 'center', alignItems: 'center', gap: 10 },
+  fotoVaciaTexto: {
+    fontFamily: Fonts.regular,
+    color: Colors.textSoft,
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 24,
+  },
   fotoBotones: { flexDirection: 'row', gap: 12, marginTop: 12 },
   fotoBtn: {
     flex: 1,
-    minHeight: 50,
+    minHeight: 48,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
     borderColor: Colors.primary,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.card,
   },
-  fotoBtnTexto: { color: Colors.primary, fontWeight: '700', fontSize: 15 },
-  chip: { 
-    paddingHorizontal: 16, 
-    minHeight: 38, 
-    justifyContent: 'center', 
-    borderRadius: 19, 
-    backgroundColor: '#E2E8F0' 
+  fotoBtnTexto: { fontFamily: Fonts.bold, color: Colors.primary, fontSize: 15 },
+  chip: {
+    paddingHorizontal: 16,
+    minHeight: 38,
+    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-  chipActivo: { backgroundColor: Colors.primary },
-  chipTexto: { color: '#475569', fontWeight: '500', fontSize: 13 },
-  chipTextoActivo: { color: '#FFF' },
-  typeBtn: { 
-    flex: 1, 
-    minHeight: 50, 
-    justifyContent: 'center', 
+  chipActivo: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  chipTexto: { fontFamily: Fonts.medium, color: Colors.textSoft, fontSize: 13 },
+  chipTextoActivo: { fontFamily: Fonts.bold, color: '#FFF' },
+  typeBtn: {
+    flex: 1,
+    minHeight: 50,
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 12, 
-    borderRadius: 10, 
-    borderWidth: 1, 
-    borderColor: '#CBD5E1' 
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.inputBg,
   },
-  typeBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  typeText: { color: '#64748B', fontWeight: 'bold', fontSize: 15 },
-  typeTextActive: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
-  submitBtn: { 
-    backgroundColor: Colors.primary, 
-    minHeight: 54, 
-    justifyContent: 'center', 
+  typeBtnActive: { backgroundColor: Colors.primary },
+  typeText: { fontFamily: Fonts.bold, color: Colors.textSoft, fontSize: 15 },
+  typeTextActive: { fontFamily: Fonts.bold, color: '#FFF', fontSize: 15 },
+  submitBtn: {
+    backgroundColor: Colors.primary,
+    minHeight: 54,
+    justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12, 
-    marginTop: 28
+    borderRadius: 12,
+    marginTop: 28,
   },
   submitBtnDisabled: { opacity: 0.65 },
-  submitBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
+  submitBtnText: { fontFamily: Fonts.bold, color: '#FFF', fontSize: 16 },
 });

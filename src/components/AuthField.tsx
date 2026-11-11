@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { Colors } from "@/constants/colors";
+import { Fonts } from "@/constants/fonts";
 
 type Props = TextInputProps & {
   icon: keyof typeof Ionicons.glyphMap;
@@ -49,18 +50,16 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: Colors.inputBg,
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 52,
-    marginVertical: 6,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
   },
   input: {
     flex: 1,
     marginLeft: 10,
+    fontFamily: Fonts.regular,
     fontSize: 15,
-    color: "#0F172A",
+    color: Colors.text,
   },
 });

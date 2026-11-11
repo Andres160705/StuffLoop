@@ -1,6 +1,8 @@
 import { supabase } from "@/supabase";
 import { makeRedirectUri } from "expo-auth-session";
+import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
+import { Platform } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -29,10 +31,21 @@ export async function signInWithGoogle(): Promise<ResultadoGoogle> {
   // Safari NO intenta conectarse a localhost: la sesión de auth intercepta el
   // retorno por el scheme "exp" antes de resolver el host.
   // En un build nativo (EAS) el scheme sí es stuffloop://.
-  const redirectTo = makeRedirectUri({
-    scheme: "stuffloop",
-    preferLocalhost: true,
-  });
+  //
+  // ANDROID: el truco de localhost NO sirve. Android no intercepta el retorno
+  // como iOS; le pasa exp://localhost:8081 a Expo Go, que lo trata como OTRO
+  // proyecto y la app nunca recibe los tokens (el botón se queda cargando).
+  // Ahí usamos la URL real del proyecto que está corriendo
+  // (exp://IP:PUERTO/--/auth-callback), que Expo Go sí le entrega a la app.
+  // Si Supabase la rechazara por ser IP privada, arrancar con
+  // `npx expo start --tunnel` (la URL queda como exp://xxxx.exp.direct).
+  const redirectTo =
+    Platform.OS === "android"
+      ? Linking.createURL("auth-callback")
+      : makeRedirectUri({
+          scheme: "stuffloop",
+          preferLocalhost: true,
+        });
   console.log(
     "[Google] URL de retorno (agregar en Supabase → Authentication → URL Configuration):",
     redirectTo

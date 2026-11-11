@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../../constants/colors";
+import { Fonts } from "../../constants/fonts";
 import { objetosService } from "../../services/objetosService";
 import { Objeto } from "../../types/objeto";
 
@@ -53,13 +54,15 @@ export default function DetalleObjeto() {
     );
   };
 
+  const esPrestamo = objeto?.tipo !== "intercambio";
+
   // La imagen principal escala con el ancho de pantalla (55% del ancho, con tope)
-  const altoImagen = Math.round(Math.min(width, ANCHO_MAXIMO) * 0.55);
+  const altoImagen = Math.round((Math.min(width, ANCHO_MAXIMO) - 56) * 0.75);
 
   return (
     <View style={styles.container}>
       {/* Header propio: empuja el contenido, no se superpone */}
-      <CatalogoHeader title={objeto?.titulo || "Detalle"} mostrarAtras />
+      <CatalogoHeader title="Detalle del objeto" mostrarAtras />
 
       {cargando ? (
         <View style={styles.center}>
@@ -67,7 +70,7 @@ export default function DetalleObjeto() {
         </View>
       ) : !objeto ? (
         <View style={styles.center}>
-          <Ionicons name="cube-outline" size={48} color="#CBD5E1" />
+          <Ionicons name="cube-outline" size={48} color={Colors.muted} />
           <Text style={styles.noEncontrado}>Objeto no encontrado.</Text>
         </View>
       ) : (
@@ -75,29 +78,29 @@ export default function DetalleObjeto() {
           style={styles.scroll}
           contentContainerStyle={styles.contenido}
         >
-          <ObjetoImagen
-            uri={objeto.imagenUrl}
-            style={[styles.image, { height: altoImagen }]}
-          />
+          <View style={styles.card}>
+            <ObjetoImagen
+              uri={objeto.imagenUrl}
+              style={[styles.image, { height: altoImagen }]}
+            />
 
-          <View style={styles.content}>
-            <View style={styles.header}>
-              <Text style={styles.title}>{objeto.titulo}</Text>
-              <Text
-                style={[
-                  styles.badge,
-                  objeto.tipo === "prestamo"
-                    ? styles.badgePrestamo
-                    : styles.badgeIntercambio,
-                ]}
-              >
-                {objeto.tipo ? objeto.tipo.toUpperCase() : "GENERAL"}
-              </Text>
+            <View style={styles.etiquetas}>
+              <View style={styles.etiqueta}>
+                <Ionicons
+                  name={esPrestamo ? "calendar-outline" : "swap-horizontal-outline"}
+                  size={14}
+                  color={Colors.primary}
+                />
+                <Text style={styles.etiquetaTexto}>
+                  {esPrestamo ? "Préstamo" : "Intercambio"}
+                </Text>
+              </View>
+              <View style={styles.etiqueta}>
+                <Text style={styles.etiquetaTexto}>{objeto.categoria}</Text>
+              </View>
             </View>
 
-            <Text style={styles.category}>Categoría: {objeto.categoria}</Text>
-
-            <View style={styles.divider} />
+            <Text style={styles.title}>{objeto.titulo}</Text>
 
             <Text style={styles.sectionTitle}>Descripción</Text>
             <Text style={styles.description}>{objeto.descripcion}</Text>
@@ -107,11 +110,26 @@ export default function DetalleObjeto() {
               {objeto.condiciones || "Sin condiciones específicas."}
             </Text>
 
-            <View style={styles.divider} />
+            {!!objeto.diasMaxPrestamo && esPrestamo && (
+              <>
+                <Text style={styles.sectionTitle}>Tiempo máximo de préstamo</Text>
+                <Text style={styles.description}>
+                  {objeto.diasMaxPrestamo}{" "}
+                  {objeto.diasMaxPrestamo === 1 ? "día" : "días"}
+                </Text>
+              </>
+            )}
 
             <View style={styles.ownerCard}>
-              <Text style={styles.ownerTitle}>Publicado por</Text>
-              <Text style={styles.ownerName}>{objeto.usuarioNombre}</Text>
+              <View style={styles.ownerAvatar}>
+                <Text style={styles.ownerInicial}>
+                  {(objeto.usuarioNombre || "V").charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.ownerTitle}>Publicado por</Text>
+                <Text style={styles.ownerName}>{objeto.usuarioNombre}</Text>
+              </View>
             </View>
 
             <TouchableOpacity
@@ -119,10 +137,13 @@ export default function DetalleObjeto() {
               onPress={solicitarObjeto}
               activeOpacity={0.8}
             >
+              <Ionicons
+                name={esPrestamo ? "calendar-outline" : "swap-horizontal-outline"}
+                size={20}
+                color="#FFF"
+              />
               <Text style={styles.buttonText}>
-                {objeto.tipo === "prestamo"
-                  ? "Solicitar Préstamo"
-                  : "Proponer Intercambio"}
+                {esPrestamo ? "Solicitar préstamo" : "Proponer intercambio"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -133,53 +154,75 @@ export default function DetalleObjeto() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF" },
+  container: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
   // Columna centrada con ancho máximo: en móvil ocupa todo el ancho
-  contenido: { width: "100%", maxWidth: ANCHO_MAXIMO, alignSelf: "center" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
-  noEncontrado: { color: "#64748B", fontSize: 15 },
-  image: { width: "100%", backgroundColor: "#E2E8F0" },
-  content: { padding: 20, paddingBottom: 32 },
-  // "wrap" para que el badge baje de línea en títulos largos
-  header: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 8,
+  contenido: {
+    width: "100%",
+    maxWidth: ANCHO_MAXIMO,
+    alignSelf: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 32,
   },
-  title: { fontSize: 22, fontWeight: "bold", color: "#0F172A", flexShrink: 1 },
-  badge: {
-    fontSize: 11,
-    fontWeight: "bold",
+  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
+  noEncontrado: { fontFamily: Fonts.regular, color: Colors.textSoft, fontSize: 15 },
+  card: { backgroundColor: Colors.card, borderRadius: 16, padding: 12 },
+  image: { width: "100%", borderRadius: 12, backgroundColor: Colors.background },
+  etiquetas: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
+  etiqueta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.inputBg,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
-    color: "#FFF",
-    overflow: "hidden",
-    alignSelf: "flex-start",
   },
-  badgePrestamo: { backgroundColor: Colors.badgePrestamo },
-  badgeIntercambio: { backgroundColor: Colors.badgeIntercambio },
-  category: { fontSize: 14, color: "#64748B", marginTop: 4 },
-  divider: { height: 1, backgroundColor: "#E2E8F0", marginVertical: 16 },
+  etiquetaTexto: { fontFamily: Fonts.semibold, fontSize: 12, color: Colors.primary },
+  title: {
+    fontFamily: Fonts.extrabold,
+    fontSize: 26,
+    lineHeight: 32,
+    color: Colors.text,
+    marginTop: 8,
+  },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#334155",
-    marginBottom: 6,
+    fontFamily: Fonts.bold,
+    fontSize: 15,
+    color: Colors.text,
+    marginTop: 18,
+    marginBottom: 4,
   },
-  description: { fontSize: 15, color: "#475569", lineHeight: 22 },
+  description: {
+    fontFamily: Fonts.regular,
+    fontSize: 15,
+    color: Colors.textSoft,
+    lineHeight: 23,
+  },
   ownerCard: {
-    backgroundColor: "#F8FAFC",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: Colors.inputBg,
     padding: 12,
-    borderRadius: 8,
-    marginVertical: 12,
+    borderRadius: 12,
+    marginTop: 22,
   },
-  ownerTitle: { fontSize: 12, color: "#64748B" },
-  ownerName: { fontSize: 16, fontWeight: "bold", color: "#0F172A" },
+  ownerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  ownerInicial: { fontFamily: Fonts.bold, fontSize: 18, color: "#FFF" },
+  ownerTitle: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.textSoft },
+  ownerName: { fontFamily: Fonts.bold, fontSize: 16, color: Colors.text },
   // Altura táctil mínima de 54px para el botón principal
   button: {
+    flexDirection: "row",
+    gap: 8,
     backgroundColor: Colors.primary,
     minHeight: 54,
     justifyContent: "center",
@@ -187,5 +230,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 12,
   },
-  buttonText: { color: "#FFF", fontSize: 16, fontWeight: "bold" },
+  buttonText: { fontFamily: Fonts.bold, color: "#FFF", fontSize: 16 },
 });
